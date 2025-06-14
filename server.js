@@ -13,10 +13,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // MySQL connection 
 const db = mysql.createPool({
-  host: 'localhost',
-  user: 'root',
-  password: 'Gvss972010@',
-  database: 'airtable_clone_db',
+  host: 'your host',
+  user: 'your user',
+  password: 'your password',
+  database: 'your db',
 });
 
 // Create tables table 
