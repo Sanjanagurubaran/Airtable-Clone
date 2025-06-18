@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Airtable Clone - Workspace</title>
+  <script>
+    const token = localStorage.getItem('token');
+if (!token) {
+  window.location.href = 'login.html';
+} else {
+  // Check with server if token is valid
+  fetch('http://localhost:3000/api/verify-token', {
+    headers: {
+      'Authorization': token
+    }
+  })
+  .then(res => {
+    if (!res.ok) {
+      // Token is invalid or expired
+      localStorage.removeItem('token');
+      window.location.href = 'login.html';
+    }
+  })
+  .catch(() => {
+    localStorage.removeItem('token');
+    window.location.href = 'login.html';
+  });
+}
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      height: 100vh;
+      background-color: aliceblue;
+    }
+    .sidebar {
+      width: 220px;
+      background-color: lightgray;
+      padding: 20px;
+      border-right: 1px solid #ddd;
+    }
+    .sidebar h2 {
+      font-size: 18px;
+      margin-bottom: 15px;
+    }
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+    .sidebar li {
+      margin: 10px 0;
+      cursor: pointer;
+      color: #333;
+    }
+    .sidebar li:hover {
+      text-decoration: underline;
+    }
+    .main-content {
+      flex: 1;
+      padding: 20px;
+      background-color: aliceblue;
+      overflow-y: auto;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .workspace-title {
+      font-size: 24px;
+      font-weight: bold;
+      color: #2c3e50;
+    }
+    .add-button {
+      font-size: 18px;
+      padding: 10px 14px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .add-button:hover {
+      background-color: #0056b3;
+    }
+    .bases-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .basesGrid {
+      position: relative;
+      background-color: pink;
+      border: 1px solid #ddd;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      cursor: pointer;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .base-card:hover {
+      box-shadow: 0 5px 10px black;
+    }
+    .delete-icon {
+      font-size: 14px;
+      color: white;
+      background-color: red;
+      padding: 5px;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    .delete-icon:hover {
+      background-color: darkred;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>Menu</h2>
+    <ul>
+      <li onclick="showBases()">My Workspace</li>
+      <li onclick="showTrash()">Trash</li>
+      <li onclick="logout()">Logout</li>
+    </ul>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="header">
+      <div class="workspace-title" id="workspaceTitle">My Workspace</div>
+      <button class="add-button" onclick="createBase()">
+        <i class="fas fa-plus"></i> Add Base
+      </button>
+    </div>
+
+    <div class="bases-grid" id="basesGrid"></div>
+  </div>
+
+  <script>
+    
+    let bases = [];
+    let deletedBases = [];
+
+    // Load data from backend
+    window.onload = async function () {
+  try {
+    // ✅ This endpoint is protected → pass Authorization token
+    const response = await fetch("http://localhost:3000/api/get-all-tables", {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      }
+    });
+
+    const data = await response.json();
+    if (data.baseNames && Array.isArray(data.baseNames)) {
+      bases = data.baseNames;
+    }
+
+    // ❗️This one is **not protected** in backend → no token needed
+    const trashResponse = await fetch("http://localhost:3000/api/get-deleted-tables");
+    const trashData = await trashResponse.json();
+    if (trashData.baseNames && Array.isArray(trashData.baseNames)) {
+      deletedBases = trashData.baseNames;
+    }
+
+    showBases(); // Show on first load
+  } catch (error) {
+    console.error("Error loading data:", error);
+    alert("Login expired. Please login again.");
+    window.location.href = 'login.html';
+  }
+};
+    function loadBases(list, isTrash) {
+      const grid = document.getElementById('basesGrid');
+      grid.innerHTML = '';
+
+      list.forEach((base, index) => {
+        const card = document.createElement('div');
+        card.className = 'basesGrid';
+        card.innerHTML = `<span>${base}</span>`;
+
+        const deleteIcon = document.createElement('i');
+        deleteIcon.className = 'fas fa-trash delete-icon';
+        deleteIcon.title = isTrash ? 'Restore' : 'Delete';
+
+        deleteIcon.onclick = async (e) => {
+          e.stopPropagation();
+          const url = isTrash
+            ? "http://localhost:3000/api/restore-base"
+            : "http://localhost:3000/api/delete-base";
+
+          try {
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json','Authorization':token },
+              body: JSON.stringify({ baseName: base })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+              if (isTrash) {
+                bases.push(base);
+                deletedBases.splice(index, 1);
+              } else {
+                deletedBases.push(base);
+                bases.splice(index, 1);
+              }
+              loadBases(isTrash ? deletedBases : bases, isTrash);
+            } else {
+              alert("Operation failed.");
+            }
+          } catch (err) {
+            console.error("Error in delete/restore:", err);
+          }
+        };
+
+        card.appendChild(deleteIcon);
+
+        card.onclick = () => {
+          window.location.href = `createTable.html?base=${encodeURIComponent(base)}`;
+        };
+
+        grid.appendChild(card);
+      });
+    }
+
+    async function createBase() {
+  const name = prompt('Enter a name for your new base:');
+  if (name && !bases.includes(name) && !deletedBases.includes(name)) {
+    try {
+      const response = await fetch('http://localhost:3000/api/save-base', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({ baseName: name })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        bases.push(name);
+        loadBases(bases, false);
+      } else {
+        alert('Failed to save base.');
+      }
+    } catch (err) {
+      console.error('Error creating base:', err);
+    }
+  } else if (bases.includes(name) || deletedBases.includes(name)) {
+    alert('Base name already exists!');
+  }
+}
+    function showBases() {
+      document.getElementById('workspaceTitle').innerText = 'My Workspace';
+      loadBases(bases, false);
+    }
+
+    function showTrash() {
+      document.getElementById('workspaceTitle').innerText = 'Trash';
+      loadBases(deletedBases, true);
+    }
+    function logout(){
+      localStorage.removeItem('token');
+      window.location.href='login.html'
+    }
+  </script>
+</body>
+</html>
