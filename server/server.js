@@ -5,7 +5,7 @@ const cors = require('cors');
 const path = require('path');
 const jwt=require('jsonwebtoken');
 const bcrypt=require('bcryptjs');
-const JWT_SECRET='sadhana_secret_key';
+const JWT_SECRET='secret_key';
 
 
 //Backend...
