@@ -131,6 +131,25 @@ app.post('/api/restore-base', async (req, res) => {
     res.status(500).json({ success: false });
   }
 });
+app.post('/api/save-table', async (req, res) => {
+  const { baseName, tableData } = req.body;
+
+  if (!baseName || !tableData) {
+    return res.status(400).json({ success: false, error: 'Invalid request' });
+  }
+
+  try {
+    await db.query(
+      `UPDATE tables SET table_json = ? WHERE base_name = ?`,
+      [JSON.stringify(tableData), baseName]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Save Table Error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 
 // Load table API
 app.get('/api/load-table/:baseName', async (req, res) => {
