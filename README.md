@@ -42,3 +42,10 @@ Fast table editing and saving.
 
 Each user has an isolated workspace.
 
+5.Tech Stack:
+
+1.Frontend: HTML,CSS,Javascript
+
+2.Backend: Node.js and Express.js
+
+3.Database: MySQL
