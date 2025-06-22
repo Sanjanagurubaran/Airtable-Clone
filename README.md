@@ -5,6 +5,7 @@ This project is a simplified Airtable-like web app built with HTML, JavaScript, 
 1.User Login
 
 Secure JWT-based login and register system.
+
 Supports multiple users – each user sees only their own workspace and tables.
 
 
